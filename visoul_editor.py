@@ -217,6 +217,7 @@ def main():
                     file.close()
                     messege("Saved")
                     screen = pygame.display.set_mode((WIDTH, HEIGHT))
+                    pygame.display.set_caption('Graph Editor')
         keys=pygame.key.get_pressed()
         if (keys[pygame.K_UP])or(keys[pygame.K_KP8]):
             for node in nodes:

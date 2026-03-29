@@ -3,6 +3,7 @@ import pygame
 import pygame.locals
 from pygame._sdl2 import Window
 import sys
+import copy
 #sys.path.insert(1, '.')
 def ops_color(color):
     if color=="w":
@@ -41,6 +42,7 @@ class graph:
         #self.vertices=[[0,0,"e"],[0,100,"e"],[0,200,"e"],[100,0,"e"],[100,100,"e"],[100,200,"e"],[200,0,"e"],[200,100,"e"],[200,200,"e"]]
         #self.edges=[[0,1],[1,2],[0,3],[3,4],[4,5],[1,4],[2,5],[3,6],[6,7],[7,8],[4,7],[5,8]]
         self.negihbors_list=[self.find_negihbors(i) for i in range(len(self.vertices))]
+        self.history=[copy.deepcopy(self.vertices)]
     def find_negihbors(self,point_index):
         negihbors=[]
         for edge in self.edges:
@@ -158,7 +160,6 @@ def main(file_name):
     windows = [window]
     window_p = Window.from_display_module()
     pos = window_p.position[:]
-    history=[str(game_map.vertices)]
     while (status):
         if pos != window_p.position[:]:
             pos = window_p.position[:]
@@ -176,14 +177,14 @@ def main(file_name):
                         ver=game_map.vertices[:]
                         game_map.kill(turn)
                         if ver==game_map.vertices:
-                            if str(game_map.vertices) in history:
+                            if game_map.vertices in game_map.history:
                                 messege("Ko")
                                 game_map.vertices=ver2
                                 game_map.vertices[i][2]="e"
                             else:
                                 pas=0
                                 turn=ops_color(turn)
-                                history.append(str(game_map.vertices))
+                                game_map.history.append(copy.deepcopy(game_map.vertices))
                         else:
                             game_map.vertices=ver
                             game_map.vertices[i][2]="e"
@@ -208,7 +209,10 @@ def main(file_name):
                 if (count_list[i]==0):
                     if game_map.vertices[i][2]=="e":
                         comp=game_map.find_componnent(i)
-                        comp_color=game_map.vertices[game_map.find_negihbors_of_list(comp)[0]][2]
+                        if game_map.find_negihbors_of_list(comp)==[]:
+                            comp_color="e"
+                        else:
+                            comp_color=game_map.vertices[game_map.find_negihbors_of_list(comp)[0]][2]
                         for vert_ind in game_map.find_negihbors_of_list(comp):
                             if not(game_map.vertices[vert_ind][2]==comp_color):
                                 comp_color="e"
