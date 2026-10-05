@@ -46,7 +46,7 @@ def load(file_path):
     try:
         file=open(file_path)
     except FileNotFoundError:
-        messege("File not found:\n" + str(file_path))
+        messege("File not found: " +str(file_path))
         return "error"
     WIDTH=int(file.readline()[:-1])
     HEIGHT=int(file.readline()[:-1])

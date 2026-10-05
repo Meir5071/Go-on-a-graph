@@ -30,6 +30,7 @@ class graph:
                 messege("File not found: " + str(file_path))
                 self.error = True
                 return
+            self.error = False
             global X
             global Y
             global x_w

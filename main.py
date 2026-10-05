@@ -49,7 +49,7 @@ def prep_run_go():
     to_show=True
     #pygame.quit()
     #pygame.init()
-    messege("Close this window.\nThen enter the path\nof the map.\nThe default is 19X19.")
+    messege("Close this window. Then enter the path of the map. The default is 19X19.")
     screen = pygame.display.set_mode((1000, 200))
     pygame.display.set_caption("Go on a graph")
     clock = pygame.time.Clock()
