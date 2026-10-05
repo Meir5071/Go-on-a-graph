@@ -28,10 +28,14 @@ def main():
             #text_box.handle_event(event)
             button_go.handle_event(event)
             button_v_e.handle_event(event)
-        if to_show:
-            screen = pygame.display.set_mode((400, 275))
-            pygame.display.set_caption("Go on a graph")
-            to_show=False
+            if to_show:
+                pygame.quit()
+                pygame.init()
+                screen = pygame.display.set_mode((400, 275))
+                pygame.display.set_caption("Go on a graph")
+                button_go = Button(100, 25, 200, 100, "Play", prep_run_go, 30)
+                button_v_e = Button(100, 150, 200, 100, "Create a map", prep_run_v_e,30)
+                to_show=False
 
         screen.fill((30, 30, 30))  # Clear the screen with a dark color
         #text_box.draw(screen)
@@ -43,6 +47,7 @@ def prep_run_go():
     global to_show
     global running
     to_show=True
+    #pygame.quit()
     #pygame.init()
     messege("Close this window.\nThen enter the path\nof the map.\nThe default is 19X19.")
     screen = pygame.display.set_mode((1000, 200))
@@ -51,13 +56,26 @@ def prep_run_go():
 
     #text_box = TextBox(50, 100, 400, 50)
     text_box = TextBox(50, 25, 900, 25)
-    button = Button(775, 75, 200, 100, "Play", lambda: play(text_box.text), 30)
+    button = Button(775, 75, 200, 100, "Play", lambda: play(text_box.text, bot_ck.checked, bot_color_tb.text, bot_difficulty_tb.text,turn_delay_tb.text,smart_pass=smart_pass_ck.checked), 30)
+    bot_ck=Checkbox(50,55,15,15, white)
+    bot_lb=Label(175, 63, "Play against the computer", 25, white)
+    bot_color_lb = Label(240, 85, "Computer color (black, white or both):", 25, white)
+    bot_color_tb = TextBox(400, 72, 40, 25)
+    bot_difficulty_lb = Label(167, 110, "Computer difficulty:", 25, white)
+    bot_difficulty_tb = TextBox(254, 99, 40, 25)
+    turn_delay_lb = Label(170, 160, "Turn delay (seconds):", 25, white)
+    turn_delay_tb = TextBox(260, 150, 40, 25)
+    smart_pass_ck=Checkbox(85,126,15,15, white)
+    smart_pass_lb=Label(390, 135, "The computer will try to win and not get the maximal score difference", 25, white)
     #button_v_e = Button(100, 150, 200, 100, "Create a map", run_v_e,30)
 
     # Enable key repeat
     pygame.key.set_repeat(400, 100)  # Delay in ms before repeat, then repeat every 50 ms
     running=True
     text_box.text="19_19_grid.txt"
+    bot_difficulty_tb.text="2"
+    bot_color_tb.text="white"
+    turn_delay_tb.text="2"
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -66,18 +84,54 @@ def prep_run_go():
                 running=False
             text_box.handle_event(event)
             button.handle_event(event)
-
+            if not running:
+                return
+            bot_ck.handle_event(event)
+            if bot_ck.checked:
+                bot_color_tb.handle_event(event)
+                bot_difficulty_tb.handle_event(event)
+                smart_pass_ck.handle_event(event)
+                if bot_color_tb.text=="both":
+                    turn_delay_tb.handle_event(event)
         screen.fill((30, 30, 30))  # Clear the screen with a dark color
         text_box.draw(screen)
         button.draw(screen)
+        bot_ck.draw(screen)
+        bot_lb.draw(screen)
+        if bot_ck.checked:
+            bot_color_lb.draw(screen)
+            bot_color_tb.draw(screen)
+            bot_difficulty_lb.draw(screen)
+            bot_difficulty_tb.draw(screen)
+            smart_pass_ck.draw(screen)
+            smart_pass_lb.draw(screen)
+            if bot_color_tb.text=="both":
+                turn_delay_lb.draw(screen)
+                turn_delay_tb.draw(screen)
+
         pygame.display.flip()
         clock.tick(30)
-def play(path):
+def play(path,bot_exists,bot_colors_str,bot_level,turn_delay,smart_pass):
     global to_show
     to_show=True
     global running
     running=False
-    go.main(path)
+    #pygame.quit()
+    #pygame.init()
+    if bot_exists:
+        if bot_colors_str=="black":
+            bot_colors=["b"]
+        elif bot_colors_str=="white":
+            bot_colors=["w"]
+        elif  bot_colors_str=="both":
+            bot_colors=["b","w"]
+        else:
+            bot_colors=[]
+        go.main(path,bot_colors,int(bot_level),int(turn_delay),smart_pass=smart_pass)
+    else:
+        go.main(path,[],0,0)
+    #pygame.quit()
+    #pygame.init()
 def prep_run_v_e():
     global to_show
     global running
@@ -137,6 +191,8 @@ def prep_run_v_e():
                 cell_boundery_width_tb.handle_event(event)
                 edge_width_tb.handle_event(event)
             button.handle_event(event)
+            if not running:
+                return
 
         screen.fill((30, 30, 30))  # Clear the screen with a dark color
         map_file_lb.draw(screen)
@@ -163,8 +219,12 @@ def prep_run_v_e():
         pygame.display.flip()
         clock.tick(30)
 def run_v_e(to_load:bool,load_file:str,X:str,Y:str,r,w_v:str,w_e:str,file_n:str,to_change:bool)->None:
+    #pygame.quit()
+    #pygame.init()
     if to_load:
-        v_e.load(load_file)
+        m=v_e.load(load_file)
+        if m=="error":
+            return
         if to_change:
             if X=="":
                 X_s=None
@@ -194,6 +254,8 @@ def run_v_e(to_load:bool,load_file:str,X:str,Y:str,r,w_v:str,w_e:str,file_n:str,
     to_show=True
     global running
     running=False
+    #pygame.quit()
+    #pygame.init()
     #not working!!??
 if __name__ == "__main__":
     main()

@@ -1,7 +1,7 @@
 import pygame
 import sys
 import math
-import sys
+from interactive_things import messege
 sys.path.insert(1, '.')
 NODE_COLOR = (0, 0, 255)
 EDGE_COLOR = (0, 0, 255)
@@ -34,36 +34,6 @@ class Edge:
 
     def draw(self, screen):
         pygame.draw.line(screen, EDGE_COLOR, (self.start_node.x, self.start_node.y), (self.end_node.x, self.end_node.y), edge_width)
-def messege(string):
-    pygame.init()
-    
-    width, height = 400, 300
-    messege_window = pygame.display.set_mode((width, height))
-    pygame.display.set_caption('messege')
-    
-    font = pygame.font.Font(None, 60)
-    #text_surface = font.render(string, True, (255, 255, 255))
-    lines = string.split('\n')  # Split the text into lines
-    text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]  # Create surfaces for each line
-    text_rects = [surface.get_rect(center=(width // 2, height // 2 + i * 30)) for i, surface in enumerate(text_surfaces)]  # Adjust the vertical position for each line
-    
-    #windows.append(messege_window)
-
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        messege_window.fill((0, 0, 0))
-        for surface, rect in zip(text_surfaces, text_rects):
-            messege_window.blit(surface, rect)
-        pygame.display.flip()
-
-    #windows.remove(messege_window)
-    pygame.display.flip()
-    #show_map()
-    #pygame.quit()
 # Main function
 def load(file_path):
     global WIDTH, HEIGHT
@@ -73,7 +43,11 @@ def load(file_path):
     global sel_width
     global nodes
     global edges
-    file=open(file_path)
+    try:
+        file=open(file_path)
+    except FileNotFoundError:
+        messege("File not found:\n" + str(file_path))
+        return "error"
     WIDTH=int(file.readline()[:-1])
     HEIGHT=int(file.readline()[:-1])
     x_w=int(file.readline()[:-1])
@@ -92,6 +66,7 @@ def load(file_path):
         nodes+=[Node(int(vert.split(",")[0])+x_w,int(vert.split(",")[1])+y_w)]
     for edge_i in edge_spl:
         edges+=[Edge(nodes[int(edge_i.split(",")[0])],nodes[int(edge_i.split(",")[1])])]
+    return "ok"
 def set_attributs(X=None,Y=None,r=None,w_v=None,w_e=None,vert=None,edg=None,file_n=None):
     global WIDTH, HEIGHT
     global NODE_RADIUS
@@ -119,7 +94,7 @@ def set_attributs(X=None,Y=None,r=None,w_v=None,w_e=None,vert=None,edg=None,file
         file_name=file_n
 
 def main():
-    pygame.init()
+    #pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption('Graph Editor')
     clock = pygame.time.Clock()
@@ -258,5 +233,6 @@ if __name__ == "__main__":
     file_name="v_map.txt"
     nodes = []
     edges = []
+    pygame.init()
     main()
 #main()

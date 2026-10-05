@@ -2,7 +2,7 @@ import pygame
 import pyperclip
 import sys
 def messege(string):
-    pygame.init()
+    #pygame.init()
     
     width, height = 400, 300
     messege_window = pygame.display.set_mode((width, height))
