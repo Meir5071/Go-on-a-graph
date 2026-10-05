@@ -1,20 +1,64 @@
 import pygame
 import pyperclip
 import sys
-def messege(string):
-    pygame.init()
-    
-    width, height = 400, 300
-    messege_window = pygame.display.set_mode((width, height))
-    pygame.display.set_caption('messege')
-    
-    font = pygame.font.Font(None, 50)
+def wrap_text(text, font, max_width):
+    # Break text into lines that fit within max_width, keeping existing '\n' breaks
+    wrapped = []
+    for paragraph in text.split('\n'):
+        current = ''
+        for word in paragraph.split(' '):
+            # Split words that are too long to fit on a line by themselves
+            while font.size(word)[0] > max_width:
+                cut = len(word)
+                while cut > 1 and font.size(word[:cut])[0] > max_width:
+                    cut -= 1
+                if current:
+                    wrapped.append(current)
+                    current = ''
+                wrapped.append(word[:cut])
+                word = word[cut:]
+            candidate = word if not current else current + ' ' + word
+            if font.size(candidate)[0] <= max_width:
+                current = candidate
+            else:
+                wrapped.append(current)
+                current = word
+        wrapped.append(current)
+    return wrapped
+
+def message(string):
+    #pygame.init()
+
+    min_width, min_height = 400, 300
+    margin = 20
+    font = pygame.font.Font(None, 30)
+    line_height = font.get_linesize()
+
+    # Limit the window to the screen size
+    try:
+        screen_w, screen_h = pygame.display.get_desktop_sizes()[0]
+    except (AttributeError, IndexError):
+        info = pygame.display.Info()
+        screen_w, screen_h = info.current_w, info.current_h
+    max_width = max(min_width, min(800, screen_w - 100))
+    max_height = max(min_height, screen_h - 100)
+
+    # Add line breaks so every line fits, then size the window to the text
+    lines = wrap_text(string, font, max_width - 2 * margin)
+    text_width = max(font.size(line)[0] for line in lines)
+    width = max(min_width, min(max_width, text_width + 2 * margin))
+    height = max(min_height, min(max_height, len(lines) * line_height + 2 * margin))
+
+    message_window = pygame.display.set_mode((width, height))
+    pygame.display.set_caption('Message')
+
     #text_surface = font.render(string, True, (255, 255, 255))
-    lines = string.split('\n')  # Split the text into lines
     text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]  # Create surfaces for each line
-    text_rects = [surface.get_rect(center=(width // 2, height // 2 + i * 30)) for i, surface in enumerate(text_surfaces)]  # Adjust the vertical position for each line
-    
-    #windows.append(messege_window)
+    # Center the whole block of text vertically, and each line horizontally
+    top = (height - len(lines) * line_height) // 2
+    text_rects = [surface.get_rect(center=(width // 2, top + i * line_height + line_height // 2)) for i, surface in enumerate(text_surfaces)]
+
+    #windows.append(message_window)
 
     running = True
     while running:
@@ -22,12 +66,12 @@ def messege(string):
             if event.type == pygame.QUIT:
                 running = False
 
-        messege_window.fill((0, 0, 0))
+        message_window.fill((0, 0, 0))
         for surface, rect in zip(text_surfaces, text_rects):
-            messege_window.blit(surface, rect)
+            message_window.blit(surface, rect)
         pygame.display.flip()
 
-    #windows.remove(messege_window)
+    #windows.remove(message_window)
     pygame.display.flip()
     #show_map()
     #pygame.quit()
@@ -180,7 +224,7 @@ def main():
     label = Label(300, 230, "Hello, World!", 36, (255, 255, 255))
 
     # Enable key repeat
-    pygame.key.set_repeat(400, 100)  # Delay in ms before repeat, then repeat every 50 ms
+    pygame.key.set_repeat(400, 100)  # Delay in ms before repeat, then repeat every 100 ms
 
     while True:
         for event in pygame.event.get():
