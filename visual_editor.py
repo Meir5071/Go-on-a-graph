@@ -31,9 +31,23 @@ class Edge:
     def __init__(self, start_node, end_node):
         self.start_node = start_node
         self.end_node = end_node
+        self.selected = False
+
+    def distance_to(self, pos):
+        # Distance from a point to the edge's line segment
+        ax, ay = self.start_node.x, self.start_node.y
+        bx, by = self.end_node.x, self.end_node.y
+        dx, dy = bx - ax, by - ay
+        length_sq = dx * dx + dy * dy
+        if length_sq == 0:
+            return math.hypot(pos[0] - ax, pos[1] - ay)
+        t = max(0, min(1, ((pos[0] - ax) * dx + (pos[1] - ay) * dy) / length_sq))
+        return math.hypot(pos[0] - (ax + t * dx), pos[1] - (ay + t * dy))
 
     def draw(self, screen):
-        pygame.draw.line(screen, EDGE_COLOR, (self.start_node.x, self.start_node.y), (self.end_node.x, self.end_node.y), edge_width)
+        color = (255, 0, 0) if self.selected else EDGE_COLOR
+        width = edge_width + 2 if self.selected else edge_width
+        pygame.draw.line(screen, color, (self.start_node.x, self.start_node.y), (self.end_node.x, self.end_node.y), width)
 # Main function
 def load(file_path):
     global WIDTH, HEIGHT
@@ -106,6 +120,12 @@ def main():
     clock = pygame.time.Clock()
     dragging_node = None
     first_node = None
+    selection_start = None
+    selection_end = None
+    group_drag_node = None
+    group_drag_last = None
+    group_drag_moved = False
+    group_drag_deselect = False
     run=True
     while run:
         #screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -147,11 +167,34 @@ def main():
                 
                 elif event.button == 3:  # Right mouse button
                     # Check if a node was clicked for selection
+                    clicked_node = None
                     for node in nodes:
                         if math.hypot(node.x - event.pos[0], node.y - event.pos[1]) < NODE_RADIUS:
-                            node.selected = not node.selected
-                            node.selected_left = False
+                            clicked_node = node
                             break
+                    if clicked_node:
+                        # Toggle on release, or drag all selected nodes if the mouse moves
+                        group_drag_node = clicked_node
+                        group_drag_last = event.pos
+                        group_drag_moved = False
+                        if not clicked_node.selected:
+                            clicked_node.selected = True
+                            clicked_node.selected_left = False
+                            group_drag_deselect = False
+                        else:
+                            group_drag_deselect = True
+                    else:
+                        clicked_edge = None
+                        for edge in edges:
+                            if edge.distance_to(event.pos) <= max(edge_width / 2 + 3, 5):
+                                clicked_edge = edge
+                                break
+                        if clicked_edge:
+                            clicked_edge.selected = not clicked_edge.selected
+                        else:
+                            # Start an area selection
+                            selection_start = event.pos
+                            selection_end = event.pos
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1 and dragging_node:
@@ -159,9 +202,41 @@ def main():
                     dragging_node.selected = False
                     dragging_node = None
                     first_node = None
+                elif event.button == 3 and selection_start:
+                    # Select all nodes inside the area
+                    sel_rect = pygame.Rect(selection_start, (0, 0))
+                    sel_rect.union_ip(pygame.Rect(event.pos, (0, 0)))
+                    for node in nodes:
+                        if sel_rect.left <= node.x <= sel_rect.right and sel_rect.top <= node.y <= sel_rect.bottom:
+                            node.selected = True
+                            node.selected_left = False
+                    for edge in edges:
+                        if all(sel_rect.left <= n.x <= sel_rect.right and sel_rect.top <= n.y <= sel_rect.bottom for n in (edge.start_node, edge.end_node)):
+                            edge.selected = True
+                    selection_start = None
+                    selection_end = None
+                elif event.button == 3 and group_drag_node:
+                    # A right click without dragging deselects an already selected node
+                    if not group_drag_moved and group_drag_deselect:
+                        group_drag_node.selected = False
+                        group_drag_node.selected_left = False
+                    group_drag_node = None
 
             elif event.type == pygame.MOUSEMOTION:
-                if dragging_node:
+                if selection_start:
+                    selection_end = event.pos
+                elif group_drag_node:
+                    # Move all selected nodes with the mouse
+                    dx = event.pos[0] - group_drag_last[0]
+                    dy = event.pos[1] - group_drag_last[1]
+                    if dx or dy:
+                        group_drag_moved = True
+                        for node in nodes:
+                            if node.selected:
+                                node.x += dx
+                                node.y += dy
+                    group_drag_last = event.pos
+                elif dragging_node:
                     dragging_node.x, dragging_node.y = event.pos
                 else:
                     for node in nodes:
@@ -170,15 +245,31 @@ def main():
                             break
 
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_BACKSPACE:
-                    # Delete selected nodes
+                if event.key in (pygame.K_BACKSPACE, pygame.K_DELETE) or (event.key == pygame.K_KP_PERIOD and not (event.mod & pygame.KMOD_NUM)):
+                    # Delete selected nodes and edges
                     selected_nodes = [node for node in nodes if node.selected]
                     for node in nodes:
                         node.selected = False
                     if first_node in selected_nodes:
                         first_node = None
                     nodes[:] = [node for node in nodes if node not in selected_nodes]
-                    edges[:] = [edge for edge in edges if edge.start_node not in selected_nodes and edge.end_node not in selected_nodes]
+                    edges[:] = [edge for edge in edges if not edge.selected and edge.start_node not in selected_nodes and edge.end_node not in selected_nodes]
+                elif event.key == pygame.K_a and (event.mod & pygame.KMOD_CTRL):
+                    # Select all nodes and edges
+                    for node in nodes:
+                        node.selected = True
+                        node.selected_left = False
+                    for edge in edges:
+                        edge.selected = True
+                elif event.key == pygame.K_SPACE:
+                    # Deselect all nodes and edges
+                    for node in nodes:
+                        node.selected = False
+                        node.selected_left = False
+                    for edge in edges:
+                        edge.selected = False
+                    first_node = None
+                    dragging_node = None
                 elif event.key == pygame.K_s:
                     file=open(file_name,"w")
                     file.write(str(WIDTH)+"\n")
@@ -225,6 +316,12 @@ def main():
         # Draw nodes
         for node in nodes:
             node.draw(screen,first_node)
+
+        # Draw area selection rectangle
+        if selection_start:
+            sel_rect = pygame.Rect(selection_start, (0, 0))
+            sel_rect.union_ip(pygame.Rect(selection_end, (0, 0)))
+            pygame.draw.rect(screen, (255, 0, 0), sel_rect, 1)
 
         pygame.display.flip()
         clock.tick(60)
